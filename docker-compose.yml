@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+    container_name: api
+    ports:
+      - "8080:8080"
+    environment:
+      - GIN_MODE=release
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 3s
+      timeout: 1s
+      retries: 10
+
+  k6:
+    image: grafana/k6:latest
+    container_name: k6
+    depends_on:
+      api:
+        condition: service_healthy
+    working_dir: /workspace
+    volumes:
+      - ./scripts:/workspace/scripts
+    command: ["run", "--vus", "200", "--duration", "30s", "--summary-trend-stats", "avg,p(90),p(95),max", "scripts/transfer_test.js"]

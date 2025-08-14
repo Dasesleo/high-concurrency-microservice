@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build API image
+        run: docker compose build api
+      - name: Start API
+        run: docker compose up -d api
+      - name: Wait for health
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8080/health >/dev/null; then
+              echo "API healthy"; exit 0
+            fi
+            sleep 2
+          done
+          echo "API not healthy in time"; docker compose logs api; exit 1
+      - name: Run k6 smoke (short)
+        run: docker run --network host -v ${{ github.workspace }}:/w -w /w grafana/k6:latest run --vus 10 --duration 5s --summary-trend-stats "avg,p(90),p(95),max" scripts/transfer_test.js
+      - name: Show API logs on failure
+        if: failure()
+        run: docker compose logs api
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
