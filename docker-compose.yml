@@ -3,7 +3,7 @@ version: "3.9"
 services:
   api:
     build:
-      context: ./service
+      context: ./service-java
       dockerfile: Dockerfile
     container_name: api
     ports:
@@ -25,4 +25,14 @@ services:
     working_dir: /workspace
     volumes:
       - ./scripts:/workspace/scripts
-    command: ["run", "--vus", "200", "--duration", "30s", "--summary-trend-stats", "avg,p(90),p(95),max", "scripts/transfer_test.js"]
+    command:
+      [
+        "run",
+        "--vus",
+        "200",
+        "--duration",
+        "30s",
+        "--summary-trend-stats",
+        "avg,p(90),p(95),max",
+        "scripts/transfer_test.js",
+      ]
